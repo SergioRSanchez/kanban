@@ -65,9 +65,9 @@ function App() {
             <Filter className='w-[16px] sm:w-[24px]'/>
             <p className='text-white text-sm'>Filtrar</p>
           </button>
-          <form className='flex gap-1 sm:gap-2 items-center w-full bg-white border-[#E3E3E3] border-2 rounded-lg px-2 py-1 sm:px-6 sm:py-3'>
+          <form className='flex gap-1 sm:gap-2 items-center w-full bg-white border-[#E3E3E3] border-2 rounded-lg px-2 py-1 sm:px-6 sm:py-3 shadow-[3px_4px_26px_0_rgba(0,0,0,0.25)]'>
             <Search className='w-[16px] sm:w-[24px]'/>
-            <input type="text" placeholder='Busque por cards, assuntos ou responsáveis...' className='text-[10px] sm:text-base w-full outline-none' />
+            <input type="text" placeholder='Busque por cards, assuntos ou responsáveis...' className='text-[10px] sm:text-base w-full outline-none ' />
           </form>
         </section>
         <section>
