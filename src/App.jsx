@@ -1,4 +1,8 @@
 import { useState } from 'react';
+import { DragDropContext, Draggable, Droppable } from 'react-beautiful-dnd';
+import { v4 as uuid } from 'uuid';
+import { StrictModeDroppable } from './StrictModeDroppable';
+
 
 import { ReactComponent as Logo } from './assets/logo.svg';
 import { ReactComponent as Cog } from './assets/cog.svg';
@@ -12,8 +16,104 @@ import { ReactComponent as Search } from './assets/search.svg';
 
 
 
+const itemsFromBackEndToDo = [
+  {id: uuid(), card: {
+    title: '#boraCodar um Kanban 🧑‍💻',
+    content: 'Novo desafio do #boraCodar da Rocketseat, onde é proposto construir um quadro de Kanban.',
+    tag: 'rocketseat'
+  }},
+  {id: uuid(), card: {
+    title: 'Manter a ofensiva 🔥',
+    content: 'Manter minha atividade na plataforma da Rocketseat para não perder a ofensiva',
+    tag: 'rocketseat'
+  }},
+  {id: uuid(), card: {
+    title: 'Almoçar 🥗',
+    content: 'Me alimentar, aproveitando um momento de descanso para recarregar minhas energias durante o almoço',
+    tag: 'autocuidado'
+  }},
+];
+
+const itemsFromBackEndDoing = [
+  {id: uuid(), card: {
+    title: 'Conferir o novo desafio 🚀',
+    content: 'Conferir o novo projeto do #boraCodar para fazê-lo da melhor maneira possível',
+    tag: 'desafio'
+  }},
+  {id: uuid(), card: {
+    title: 'Ser incrível 😎',
+    content: 'Sempre me lembrar de manter minha autenticidade e espalhar amor',
+    tag: 'autocuidado'
+  }}
+]
+
+const itemsFromBackEndDone = [
+  {id: uuid(), card: {
+    title: '#boraCodar uma página de login 🧑‍💻',
+    content: 'Novo desafio do #boraCodar da Rocketseat, onde é proposto construir um quadro de Kanban.',
+    tag: 'desafio'
+  }}
+]
+
+
+const columnsFromBackEnd = {
+  [uuid()]: {
+    name: 'A fazer',
+    items: itemsFromBackEndToDo
+  },
+  [uuid()]: {
+    name: 'Fazendo',
+    items: itemsFromBackEndDoing
+  },
+  [uuid()]: {
+    name: 'Feito',
+    items: itemsFromBackEndDone
+  }
+};
+
+
+const onDragEnd = (result, columns, setColumns) => {
+  if (!result.destination) return;
+
+  const { source, destination } = result;
+
+  if (source.droppableId !== destination.droppableId) {
+    const sourceColumn = columns[source.droppableId];
+    const destColumn = columns[destination.droppableId];
+    const sourceItems = [...sourceColumn.items];
+    const destItems = [...destColumn.items];
+    const [removed] = sourceItems.splice(source.index, 1);
+    destItems.splice(destination.index, 0, removed);
+    setColumns({
+      ...columns,
+      [source.droppableId]: {
+        ...sourceColumn,
+        items: sourceItems
+      },
+      [destination.droppableId]: {
+        ...destColumn,
+        items: destItems
+      }
+    });
+  } else {
+    const column = columns[source.droppableId];
+    const copiedItems = [...column.items];
+    const [removed] = copiedItems.splice(source.index, 1);
+    copiedItems.splice(destination.index, 0, removed);
+    setColumns({
+      ...columns,
+      [source.droppableId]: {
+        ...column,
+        items: copiedItems
+      }
+    });
+  }
+};
+
+
 function App() {
   const [ showMenu, setShowMenu ] = useState(true);
+  const [ columns, setColumns ] = useState(columnsFromBackEnd);
 
   function menu() {
     if (showMenu === false) {
@@ -72,109 +172,73 @@ function App() {
         </section>
         <section>
           <div className='sm:px-6 flex flex-col sm:flex-row gap-4 sm:gap-0 sm:justify-between'>
-            <div className='flex flex-col gap-2 sm:gap-6'>
-              <h2 className='text-lg sm:text-xl font-bold'>A fazer</h2>
+            <DragDropContext
+              onDragEnd={(result) => onDragEnd(result, columns, setColumns)}
+            >
+              {Object.entries(columns).map(([columnId, column], index) => {
+                return (
+                  <div
+                    key={columnId}
+                    className='flex flex-col'
+                  >
+                    <h2 className='text-lg sm:text-xl font-bold'>{column.name}</h2>
+                    <div style={{ margin: 8 }}>
+                      <StrictModeDroppable droppableId={columnId} key={columnId}>
+                        {(provided, snapshot) => {
+                          return(
+                            <div
+                              {...provided.droppableProps}
+                              ref={provided.innerRef}
+                              className={`sm:w-[320px] min-h-[200px] sm:min-h-[500px] rounded-lg ${snapshot.isDraggingOver ? 'bg-[#e2d6ff]' : ''}`}
+                            >
+                              {column.items.map((item, index) => {
+                                return (
+                                  <Draggable
+                                    key={item.id}
+                                    draggableId={item.id}
+                                    index={index}
+                                  >
+                                    {(provided, snapshot) => {
+                                      return (
+                                        <div
+                                          ref={provided.innerRef}
+                                          {...provided.draggableProps}
+                                          {...provided.dragHandleProps}
+                                          style={{
+                                            userSelect: 'none',
+                                            padding: 16,
+                                            margin: '0 0 8px 0',
+                                            minHeight: '50px',
+                                            borderRadius: 8,
+                                            backgroundColor: snapshot.isDragging
+                                              ? "#ffffff"
+                                              : "#FBFAFF",
+                                            color: '#403937',
+                                            ...provided.draggableProps.style
+                                          }}
+                                        >
+                                          <div className='bg-white rounded-lg px-2 py-2 sm:px-6 sm:py-6 sm:w-[320px]  flex flex-col gap-2 shadow-[3px_4px_26px_0_rgba(0,0,0,0.25)]'>
+                                            <div className='text-xs sm:text-sm font-bold'>{item.card.title}</div>
+                                            <div className='text-[#756966] text-xs sm:text-sm font-medium'>{item.card.content}</div>
+                                            <div className='bg-[#E2D6FF] px-1 sm:px-2 sm:py-1 rounded-lg text-[#7C3AED] text-xs font-medium w-fit'>{item.card.tag}</div>
+                                          </div>
 
-              <div className='flex flex-col gap-2 sm:gap-6'>
-                <div className='bg-white rounded-lg px-2 py-2 sm:px-6 sm:py-6 sm:w-[320px]  flex flex-col gap-2 shadow-[3px_4px_26px_0_rgba(0,0,0,0.25)]'>
-                  <h3 className='text-xs sm:text-sm font-bold'>#boraCodar um Kanban 🧑‍💻</h3>
-                  <p className='text-[#756966] text-xs sm:text-sm font-medium'>Novo desafio do #boraCodar da Rocketseat, onde é proposto construir um quadro de Kanban.</p>
-                  <div className='flex gap-2'>
-                    <p className='bg-[#E2D6FF] px-1 sm:px-2 sm:py-1 rounded-lg text-[#7C3AED] text-xs font-medium'>rocketseat</p>
-                    <p className='bg-[#E2D6FF] px-1 sm:px-2 sm:py-1 rounded-lg text-[#7C3AED] text-xs font-medium'>desafio</p>
+                                        </div>
+                                      );
+                                    }}
+                                  </Draggable>
+                                );
+                              })}
+                              {provided.placeholder}
+                            </div>
+                          )
+                        }}
+                      </StrictModeDroppable>
+                    </div>
                   </div>
-                </div>
-                
-                <div className='bg-white rounded-lg px-2 py-2 sm:px-6 sm:py-6 sm:w-[320px]  flex flex-col gap-2 shadow-[3px_4px_26px_0_rgba(0,0,0,0.25)]'>
-                  <h3 className='text-xs sm:text-sm font-bold'>#boraCodar um Kanban 🧑‍💻</h3>
-                  <p className='text-[#756966] text-xs sm:text-sm font-medium'>Novo desafio do #boraCodar da Rocketseat, onde é proposto construir um quadro de Kanban.</p>
-                  <div className='flex gap-2'>
-                    <p className='bg-[#E2D6FF] px-1 sm:px-2 sm:py-1 rounded-lg text-[#7C3AED] text-xs font-medium'>rocketseat</p>
-                    <p className='bg-[#E2D6FF] px-1 sm:px-2 sm:py-1 rounded-lg text-[#7C3AED] text-xs font-medium'>desafio</p>
-                  </div>
-                </div>
-                <div className='bg-white rounded-lg px-2 py-2 sm:px-6 sm:py-6 sm:w-[320px]  flex flex-col gap-2 shadow-[3px_4px_26px_0_rgba(0,0,0,0.25)]'>
-                  <h3 className='text-xs sm:text-sm font-bold'>#boraCodar um Kanban 🧑‍💻</h3>
-                  <p className='text-[#756966] text-xs sm:text-sm font-medium'>Novo desafio do #boraCodar da Rocketseat, onde é proposto construir um quadro de Kanban.</p>
-                  <div className='flex gap-2'>
-                    <p className='bg-[#E2D6FF] px-1 sm:px-2 sm:py-1 rounded-lg text-[#7C3AED] text-xs font-medium'>rocketseat</p>
-                    <p className='bg-[#E2D6FF] px-1 sm:px-2 sm:py-1 rounded-lg text-[#7C3AED] text-xs font-medium'>desafio</p>
-                  </div>
-                </div>
-                <div className='bg-white rounded-lg px-2 py-2 sm:px-6 sm:py-6 sm:w-[320px]  flex flex-col gap-2 shadow-[3px_4px_26px_0_rgba(0,0,0,0.25)]'>
-                  <h3 className='text-xs sm:text-sm font-bold'>#boraCodar um Kanban 🧑‍💻</h3>
-                  <p className='text-[#756966] text-xs sm:text-sm font-medium'>Novo desafio do #boraCodar da Rocketseat, onde é proposto construir um quadro de Kanban.</p>
-                  <div className='flex gap-2'>
-                    <p className='bg-[#E2D6FF] px-1 sm:px-2 sm:py-1 rounded-lg text-[#7C3AED] text-xs font-medium'>rocketseat</p>
-                    <p className='bg-[#E2D6FF] px-1 sm:px-2 sm:py-1 rounded-lg text-[#7C3AED] text-xs font-medium'>desafio</p>
-                  </div>
-                </div>
-                <div className='bg-white rounded-lg px-2 py-2 sm:px-6 sm:py-6 sm:w-[320px]  flex flex-col gap-2 shadow-[3px_4px_26px_0_rgba(0,0,0,0.25)]'>
-                  <h3 className='text-xs sm:text-sm font-bold'>#boraCodar um Kanban 🧑‍💻</h3>
-                  <p className='text-[#756966] text-xs sm:text-sm font-medium'>Novo desafio do #boraCodar da Rocketseat, onde é proposto construir um quadro de Kanban.</p>
-                  <div className='flex gap-2'>
-                    <p className='bg-[#E2D6FF] px-1 sm:px-2 sm:py-1 rounded-lg text-[#7C3AED] text-xs font-medium'>rocketseat</p>
-                    <p className='bg-[#E2D6FF] px-1 sm:px-2 sm:py-1 rounded-lg text-[#7C3AED] text-xs font-medium'>desafio</p>
-                  </div>
-                </div>
-                <div className='bg-white rounded-lg px-2 py-2 sm:px-6 sm:py-6 sm:w-[320px]  flex flex-col gap-2 shadow-[3px_4px_26px_0_rgba(0,0,0,0.25)]'>
-                  <h3 className='text-xs sm:text-sm font-bold'>#boraCodar um Kanban 🧑‍💻</h3>
-                  <p className='text-[#756966] text-xs sm:text-sm font-medium'>Novo desafio do #boraCodar da Rocketseat, onde é proposto construir um quadro de Kanban.</p>
-                  <div className='flex gap-2'>
-                    <p className='bg-[#E2D6FF] px-1 sm:px-2 sm:py-1 rounded-lg text-[#7C3AED] text-xs font-medium'>rocketseat</p>
-                    <p className='bg-[#E2D6FF] px-1 sm:px-2 sm:py-1 rounded-lg text-[#7C3AED] text-xs font-medium'>desafio</p>
-                  </div>
-                </div>
-                <div className='bg-white rounded-lg px-2 py-2 sm:px-6 sm:py-6 sm:w-[320px]  flex flex-col gap-2 shadow-[3px_4px_26px_0_rgba(0,0,0,0.25)]'>
-                  <h3 className='text-xs sm:text-sm font-bold'>#boraCodar um Kanban 🧑‍💻</h3>
-                  <p className='text-[#756966] text-xs sm:text-sm font-medium'>Novo desafio do #boraCodar da Rocketseat, onde é proposto construir um quadro de Kanban.</p>
-                  <div className='flex gap-2'>
-                    <p className='bg-[#E2D6FF] px-1 sm:px-2 sm:py-1 rounded-lg text-[#7C3AED] text-xs font-medium'>rocketseat</p>
-                    <p className='bg-[#E2D6FF] px-1 sm:px-2 sm:py-1 rounded-lg text-[#7C3AED] text-xs font-medium'>desafio</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <div className='flex flex-col gap-2 sm:gap-6'>
-              <h2 className='text-lg sm:text-xl font-bold'>Fazendo</h2>
-
-              <div className='flex flex-col gap-2 sm:gap-6'>
-                <div className='bg-white rounded-lg px-2 py-2 sm:px-6 sm:py-6 sm:w-[320px]  flex flex-col gap-2 shadow-[3px_4px_26px_0_rgba(0,0,0,0.25)]'>
-                  <h3 className='text-xs sm:text-sm font-bold'>Conferir o novo desafio 🚀</h3>
-                  <p className='text-[#756966] text-xs sm:text-sm font-medium'>Conferir o novo projeto do #boraCodar para fazê-lo da melhor maneira possível</p>
-                  <div className='flex gap-2'>
-                    <p className='bg-[#E2D6FF] px-1 sm:px-2 sm:py-1 rounded-lg text-[#7C3AED] text-xs font-medium'>rocketseat</p>
-                    <p className='bg-[#E2D6FF] px-1 sm:px-2 sm:py-1 rounded-lg text-[#7C3AED] text-xs font-medium'>desafio</p>
-                  </div>
-                </div>
-                
-                <div className='bg-white rounded-lg px-2 py-2 sm:px-6 sm:py-6 sm:w-[320px]  flex flex-col gap-2 shadow-[3px_4px_26px_0_rgba(0,0,0,0.25)]'>
-                  <h3 className='text-xs sm:text-sm font-bold'>Ser incrível 😎</h3>
-                  <p className='text-[#756966] text-xs sm:text-sm font-medium'>Sempre me lembrar de manter minha autenticidade e espalhar amor</p>
-                  <div className='flex gap-2'>
-                    <p className='bg-[#E2D6FF] px-1 sm:px-2 sm:py-1 rounded-lg text-[#7C3AED] text-xs font-medium'>autocuidado</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <div className='flex flex-col gap-2 sm:gap-6'>
-              <h2 className='text-lg sm:text-xl font-bold'>Feito</h2>
-
-              <div className='flex flex-col gap-2 sm:gap-6'>
-                <div className='bg-white rounded-lg px-2 py-2 sm:px-6 sm:py-6 sm:w-[320px]  flex flex-col gap-2 shadow-[3px_4px_26px_0_rgba(0,0,0,0.25)]'>
-                  <h3 className='text-xs sm:text-sm font-bold'>#boraCodar uma página de login 🧑‍💻</h3>
-                  <p className='text-[#756966] text-xs sm:text-sm font-medium'>Novo desafio do #boraCodar da Rocketseat, onde é proposto construir um quadro de Kanban.</p>
-                  <div className='flex gap-2'>
-                    <p className='bg-[#E2D6FF] px-1 sm:px-2 sm:py-1 rounded-lg text-[#7C3AED] text-xs font-medium'>rocketseat</p>
-                    <p className='bg-[#E2D6FF] px-1 sm:px-2 sm:py-1 rounded-lg text-[#7C3AED] text-xs font-medium'>desafio</p>
-                  </div>
-                </div>
-                
-                
-              </div>
-            </div>
+                )
+              })}
+            </DragDropContext>
           </div>
         </section>
       </div>
