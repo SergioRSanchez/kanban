@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { DragDropContext, Draggable, Droppable } from 'react-beautiful-dnd';
 import { v4 as uuid } from 'uuid';
 import { StrictModeDroppable } from './StrictModeDroppable';
@@ -50,7 +50,7 @@ const itemsFromBackEndDoing = [
 const itemsFromBackEndDone = [
   {id: uuid(), card: {
     title: '#boraCodar uma página de login 🧑‍💻',
-    content: 'Novo desafio do #boraCodar da Rocketseat, onde é proposto construir um quadro de Kanban.',
+    content: 'Novo desafio do #boraCodar da Rocketseat, onde é proposto construir uma página de login.',
     tag: 'desafio'
   }}
 ]
@@ -114,6 +114,23 @@ const onDragEnd = (result, columns, setColumns) => {
 function App() {
   const [ showMenu, setShowMenu ] = useState(true);
   const [ columns, setColumns ] = useState(columnsFromBackEnd);
+  const [ filteredTasks, setFilteredTasks ] = useState('');
+
+  const handleFilteredTask = useMemo(() => {
+    const taskLower = filteredTasks.toLowerCase();
+    if (taskLower === '') return columns;
+    const filteredItems = Object.entries(columns).reduce((acc, [key, column]) => {
+      const items = column.items.filter(task => {
+        const title = task.card.title.toLowerCase();
+        const content = task.card.content.toLowerCase();
+        const tag = task.card.tag.toLowerCase();
+        return title.includes(taskLower) || content.includes(taskLower) || tag.includes(taskLower);
+      });
+      acc[key] = { ...column, items };
+      return acc;
+    }, {});
+    return filteredItems;
+  }, [columns, filteredTasks]);
 
   function menu() {
     if (showMenu === false) {
@@ -167,15 +184,15 @@ function App() {
           </button>
           <form className='flex gap-1 sm:gap-2 items-center w-full bg-white border-[#E3E3E3] border-2 rounded-lg px-2 py-1 sm:px-6 sm:py-3 shadow-[3px_4px_26px_0_rgba(0,0,0,0.25)]'>
             <Search className='w-[16px] sm:w-[24px]'/>
-            <input type="text" placeholder='Busque por cards, assuntos ou responsáveis...' className='text-[10px] sm:text-base w-full outline-none ' />
+            <input onChange={event => setFilteredTasks(event.target.value)} type="text" placeholder='Busque por cards, assuntos ou responsáveis...' className='text-[10px] sm:text-base w-full outline-none ' />
           </form>
         </section>
         <section>
           <div className='sm:px-6 flex flex-col sm:flex-row gap-4 sm:gap-0 sm:justify-between'>
             <DragDropContext
-              onDragEnd={(result) => onDragEnd(result, columns, setColumns)}
+              onDragEnd={(result) => onDragEnd(result, handleFilteredTask, setColumns)}
             >
-              {Object.entries(columns).map(([columnId, column], index) => {
+              {Object.entries(handleFilteredTask).map(([columnId, column], index) => {
                 return (
                   <div
                     key={columnId}
